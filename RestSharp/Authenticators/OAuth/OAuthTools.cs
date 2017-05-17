@@ -9,6 +9,7 @@ using Windows.Security.Cryptography.Core;
 using System.Text;
 using RestSharp.Authenticators.OAuth.Extensions;
 using System.Runtime.Serialization;
+using System.IO;
 
 namespace RestSharp.Authenticators.OAuth
 {
@@ -330,6 +331,7 @@ namespace RestSharp.Authenticators.OAuth
                 tokenSecret = string.Empty;
             }
 
+            var unencodedConsumerSecret = consumerSecret;
             consumerSecret = UrlEncodeRelaxed(consumerSecret);
             tokenSecret = UrlEncodeRelaxed(tokenSecret);
 
@@ -362,6 +364,41 @@ namespace RestSharp.Authenticators.OAuth
                     break;
                 }
 
+                case OAuthSignatureMethod.RsaSha1:
+                    {
+                        using (MemoryStream stream = new MemoryStream())
+                        {
+                            Org.BouncyCastle.OpenSsl.PemReader pemReader;
+                            Org.BouncyCastle.Crypto.AsymmetricCipherKeyPair keyPair;
+
+                            using (StreamWriter writer = new StreamWriter(stream))
+                            {
+                                writer.Write(unencodedConsumerSecret);
+                                writer.Flush();
+                                stream.Position = 0;
+
+                                pemReader = new Org.BouncyCastle.OpenSsl.PemReader(new StreamReader(stream));
+                                keyPair = (Org.BouncyCastle.Crypto.AsymmetricCipherKeyPair)pemReader.ReadObject();
+                            }
+
+                            Org.BouncyCastle.Crypto.AsymmetricKeyParameter priKey = (Org.BouncyCastle.Crypto.AsymmetricKeyParameter)keyPair.Private;
+
+                            Org.BouncyCastle.Crypto.Parameters.RsaPrivateCrtKeyParameters rsaPriv = (Org.BouncyCastle.Crypto.Parameters.RsaPrivateCrtKeyParameters)priKey;
+                            RSAParameters RSAKeyInfo = Org.BouncyCastle.Security.DotNetUtilities.ToRSAParameters(rsaPriv);
+
+                            using (RSACryptoServiceProvider provider = new RSACryptoServiceProvider())  // { PersistKeyInCsp = false };
+                            {
+                                provider.ImportParameters(RSAKeyInfo);
+
+                                SHA1Managed hasher = new SHA1Managed();
+                                byte[] hash = hasher.ComputeHash(encoding.GetBytes(signatureBase));
+
+                                signature = Convert.ToBase64String(provider.SignHash(hash, CryptoConfig.MapNameToOID("SHA1")));
+                            }
+                        }
+                    }
+                    break;
+            
                 case OAuthSignatureMethod.PlainText:
                 {
                     signature = "{0}&{1}".FormatWith(consumerSecret, tokenSecret);
@@ -370,7 +407,7 @@ namespace RestSharp.Authenticators.OAuth
                 }
 
                 default:
-                    throw new NotImplementedException("Only HMAC-SHA1 and HMAC-SHA256 are currently supported.");
+                    throw new NotImplementedException("Only HMAC-SHA1, HMAC-SHA256, and RSA-SHA1 are currently supported.");
             }
 
             string result = signatureTreatment == OAuthSignatureTreatment.Escaped

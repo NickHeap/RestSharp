@@ -87,6 +87,15 @@ namespace RestSharp.Authenticators
             return authenticator;
         }
 
+        public static OAuth1Authenticator ForRequestToken(string consumerKey, string consumerSecret, string callbackUrl, OAuthSignatureMethod signatureMethod = OAuthSignatureMethod.HmacSha1)
+        {
+            OAuth1Authenticator authenticator = ForRequestToken(consumerKey, consumerSecret, signatureMethod);
+
+            authenticator.CallbackUrl = callbackUrl;
+
+            return authenticator;
+        }
+
         public static OAuth1Authenticator ForRequestToken(string consumerKey, string consumerSecret, string callbackUrl)
         {
             OAuth1Authenticator authenticator = ForRequestToken(consumerKey, consumerSecret);
@@ -113,6 +122,17 @@ namespace RestSharp.Authenticators
 
             return authenticator;
         }
+
+        public static OAuth1Authenticator ForAccessToken(string consumerKey, string consumerSecret, string token,
+            string tokenSecret, string verifier, OAuthSignatureMethod signatureMethod = OAuthSignatureMethod.HmacSha1)
+        {
+            OAuth1Authenticator authenticator = ForAccessToken(consumerKey, consumerSecret, token, tokenSecret, signatureMethod);
+
+            authenticator.Verifier = verifier;
+
+            return authenticator;
+        }
+
 
         public static OAuth1Authenticator ForAccessToken(string consumerKey, string consumerSecret, string token,
             string tokenSecret, string verifier)
