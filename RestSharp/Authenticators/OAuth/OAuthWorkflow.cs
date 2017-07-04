@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using RestSharp.Authenticators.OAuth.Extensions;
+using System.Diagnostics;
 
 #if !SILVERLIGHT && !WINDOWS_PHONE
 using System.Collections.Specialized;
@@ -224,6 +225,12 @@ namespace RestSharp.Authenticators.OAuth
             if (parameters == null)
             {
                 parameters = new WebParameterCollection();
+            }
+
+            Trace.WriteLine(string.Format("BuildProtectedResourceInfo: URL {0}", url));
+            foreach(var param in parameters)
+            {
+                Trace.WriteLine(string.Format("BuildProtectedResourceInfo: PARAM {0} = {1}", param.Name, param.Value));
             }
 
             // Include url parameters in query pool

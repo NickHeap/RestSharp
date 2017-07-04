@@ -10,6 +10,7 @@ using System.Text;
 using RestSharp.Authenticators.OAuth.Extensions;
 using System.Runtime.Serialization;
 using System.IO;
+using System.Diagnostics;
 
 namespace RestSharp.Authenticators.OAuth
 {
@@ -393,7 +394,10 @@ namespace RestSharp.Authenticators.OAuth
                                 SHA1Managed hasher = new SHA1Managed();
                                 byte[] hash = hasher.ComputeHash(encoding.GetBytes(signatureBase));
 
+                                Trace.WriteLine(string.Format("Hashing [{0}]", signatureBase));
+
                                 signature = Convert.ToBase64String(provider.SignHash(hash, CryptoConfig.MapNameToOID("SHA1")));
+                                Trace.WriteLine(string.Format("SHA1 Signature [{0}]", signature));
                             }
                         }
                     }
